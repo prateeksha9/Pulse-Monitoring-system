@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heart Rate Data Visualization</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        canvas {
+            width: 0%;
+            margin: 20px auto;
+            display: block;
+        }
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: turquoise;
+            border-radius: 10px;
+            color: black;
+        }
+        button :hover{
+            background-color: rgb(6, 35, 32);
+            color: black;
+        }
+        #container{
+            display: flex;
+            flex-direction: row;
+        }
+        #chart{
+            width:70%
+        }
+        #pulse_specific table{
+            width: 20%
+        }
+        #pulse_specific {
+        width: 20%;
+    }
+    #pulse_specific table {
+        width: 100%; /* Ensure the table takes full width of its parent */
+        border-collapse: collapse; /* Optional: for cleaner table borders */
+    }
+    #pulse_specific th, #pulse_specific td {
+        padding: 8px;
+        text-align: left;
+        border: 1px solid #ddd;
+    }
+    #pulse_specific th {
+        background-color: #f4f4f4;
+    }
+    </style>
+</head>
+<body>
+    <h1>Heart Rate Data Visualization</h1>
+    <button id="connect">Connect</button>
+    <button id="disconnect" disabled>Disconnect</button>
+    <button id="start" disabled>Start Data</button>
+    <button id="stop" disabled>Stop Data</button>
+    <div id="container">
+        <div id="chart">
+            <canvas id="pulseChart"></canvas>
+        </div>
+        <div id="pulse_specific">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>BPM</td>
+                        <td><span id="bpm"></span></td>
+                    </tr>
+                    <tr>
+                        <td>IPM</td>
+                        <td><span id="ipm"></span></td>
+                    </tr>
+                    <tr>
+                        <td>HRSTD</td>
+                        <td><span id="hrstd"></span></td>
+                    </tr>
+                    <tr>
+                        <td>RMSSD</td>
+                        <td><span id="rmssd"></span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>  
+    </div>
+    <script>
+        const ctx = document.getElementById('pulseChart').getContext('2d');
+        let fetchData = false;
+        const pulseChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Heart Rate',
+                    data: [],
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: { 
+                        title: { display: true, text: 'Time' },
+                         ticks:{
+                            stepsize: 5
+                         }
+
+                    },
+                    y: { 
+                        title: { display: true, text: 'Beats Per Minute' },
+                        min: 50,          // Set the minimum value to 0
+                        max: 120,        // Set the maximum value to 120
+                        ticks: {
+                            stepSize: 5  // Set the interval step to 10
+                        }
+                    }
+                }
+            }
+        });
+    
+        const connectButton = document.getElementById('connect');
+        const disconnectButton = document.getElementById('disconnect');
+        const startButton = document.getElementById('start');
+        const stopButton = document.getElementById('stop');
+
+        connectButton.addEventListener('click', () => {
+            fetch('/connect', { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    alert(data.status);
+                    if (data.status.includes('Connected to server')) {
+                        connectButton.disabled = true;
+                        disconnectButton.disabled = false;
+                        startButton.disabled = false;
+                    }
+                })
+                .catch(() => alert('Failed to connect to the server.'));
+        });
+
+        disconnectButton.addEventListener('click', () => {
+            fetch('/disconnect', { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    alert(data.status);
+                    if (data.status.includes('Disconnected from server')) {
+                        connectButton.disabled = false;
+                        disconnectButton.disabled = true;
+                        startButton.disabled = true;
+                        stopButton.disabled = true;
+                    }
+                })
+                .catch(() => alert('Failed to disconnect from the server.'));
+        });
+
+        startButton.addEventListener('click', () => {
+            fetch('/start', { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    alert(data.status);
+                    if (data.status.includes('Data reception started')) {
+                        startButton.disabled = true;
+                        stopButton.disabled = false;
+                        fetchPulseData();
+                        fetchData = true;
+                    }
+                })
+                .catch(() => alert('Failed to start data reception.'));
+        });
+
+        stopButton.addEventListener('click', () => {
+            fetch('/stop', { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    alert(data.status);
+                    if (data.status.includes('Data reception stopped')) {
+                        startButton.disabled = false;
+                        stopButton.disabled = true;
+                        fetchData = false;
+                    }
+                })
+                .catch(() => alert('Failed to stop data reception.'));
+        });
+
+        // Function to fetch new data points
+        async function fetchPulseData() 
+        {
+    //         document.getElementById('bpm').textContent = "72";  // Example hardcoded BPM
+    // document.getElementById('ipm').textContent = "0.1";  // Example hardcoded IPM
+    // document.getElementById('hrstd').textContent = "0.99";  // Example hardcoded HRSTD
+    // document.getElementById('rmssd').textContent = "0.67";
+            fetch('/get_pulse_data')  // Fetch pulse data from the backend
+            .then(res => res.json())
+            .then(data => {
+                if (data.pulsedata !== undefined) {  // Check if pulse data exists in the response
+                    const now = new Date().toLocaleTimeString();
+                    console.log("data from if", data)
+                    // Accessing values from the pulse object
+                    if (data.pulsedata !== null && data.pulsedata !== undefined) {
+                    const pulseValue = data.pulsedata.pulse;
+                    const impulsesPerMinute = data.pulsedata.impulses_per_minute.toFixed(2);
+                    const beatsPerMinute = data.pulsedata.beats_per_minute.toFixed(2);
+                    const rootmeansquare = data.pulsedata.root_mean_square.toFixed(2);
+                    const hrstd = data.pulsedata.hrstd.toFixed(2);
+                    console.log(pulseValue, data.pulsedata )
+
+                    // Add timestamp to the chart labels
+                    pulseChart.data.labels.push(now);  
+                    // Add the pulse value to the chart dataset
+                    pulseChart.data.datasets[0].data.push(parseInt(beatsPerMinute));  
+
+                    // Limit the chart to the last 20 data points
+                    if (pulseChart.data.labels.length > 30) {
+                        pulseChart.data.labels.shift();  // Remove the first (oldest) label
+                        pulseChart.data.datasets[0].data.shift();  // Remove the first (oldest) data point
+                    }
+
+                    pulseChart.update(); 
+                    document.getElementById('bpm').textContent = beatsPerMinute
+                    document.getElementById('ipm').textContent = impulsesPerMinute
+                    document.getElementById('hrstd').textContent = hrstd
+                    document.getElementById('rmssd').textContent = rootmeansquare
+                }
+                    // Update the chart with the new data
+                     
+                    // Schedule the next fetch
+                    // if (fetchData) {
+                    setTimeout(fetchPulseData, 3000);
+                // }
+                    // setTimeout(fetchPulseData, 1000);
+                }
+            })
+            .catch(() => {
+                console.error('Failed to fetch pulse data.');
+            });
+        }
+        // Start fetching data
+        // if(fetchData)fetchPulseData()
+        
+    </script>
+</body>
+</html>
