@@ -211,7 +211,7 @@ Wireless-Pulse-Monitoring/
 
 ### **Demo:**
 
-Link: [https://drive.google.com/file/d/18IRrI4MpeUbWc3CTB0dZtUQCziCY4v9t/view?usp=sharing](https://drive.google.com/file/d/18IRrI4MpeUbWc3CTB0dZtUQCziCY4v9t/view?usp=sharing)
+Link: [Demo](https://drive.google.com/file/d/1xETcHx_LwZOWGmXth4ZiGH-ScL9ShjCg/view?usp=sharing)
 
 ---
 
@@ -223,5 +223,3 @@ Link: [https://drive.google.com/file/d/18IRrI4MpeUbWc3CTB0dZtUQCziCY4v9t/view?us
 * Mobile app interface
 * Adaptive HRV filtering
 * TensorRT/NEON optimization
-
-```
